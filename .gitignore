@@ -1,0 +1,8 @@
+.ipynb_checkpoints/
+__pycache__/
+images/*
+*.sh
+results/*
+utils/__pycache__/
+output_dir/
+imagenet_seg/
