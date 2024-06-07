@@ -1,6 +1,8 @@
 ## Interpreting the Second-Order Effects of Neurons in CLIP
 Official PyTorch Implementation
 
+### [Paper](https://arxiv.org/abs/2406.04341) | [Project Page](https://yossigandelsman.github.io/clip_neurons/)
+
 [Yossi Gandelsman](https://yossigandelsman.github.io/), [Alexei A. Efros](https://people.eecs.berkeley.edu/~efros/), and [Jacob Steinhardt](https://jsteinhardt.stat.berkeley.edu/)
 
 ![Teaser](figures/teaser.png)
@@ -50,7 +52,7 @@ python compute_sparse_decomposition.py  --model ViT-B-32 --pretrained openai --o
 To verify the reconstruction quality, add the `--evaluate` flag.
 
 
-### Visualizing top activated images
+### Visualizing top-activated images
 Please see a demo for visualizing the images with the largest second-order effects per neuron in `visualize_neurons.ipynb`. 
 
 
@@ -84,9 +86,13 @@ Note that we used other hyperparameters in the paper, including `--mlp_layers 8 
 Please see a demo for image concept discovery in `concept_discovery.ipynb`. 
 
 ## BibTeX
-@inproceedings{
-      gandelsman2024clipneurons,
-      title={Interpreting the Second-Order Effects of Neurons in CLIP},
+```bibtex
+@misc{gandelsman2024neurons,
+      title={Interpreting the Second-Order Effects of Neurons in CLIP}, 
       author={Yossi Gandelsman and Alexei A. Efros and Jacob Steinhardt},
-      year={2024}
+      year={2024},
+      eprint={2406.04341},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
 }
+```
