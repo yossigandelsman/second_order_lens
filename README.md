@@ -7,6 +7,7 @@ Official PyTorch Implementation
 
 ![Teaser](figures/teaser.png)
 
+🔥 Check out [our previous paper](https://yossigandelsman.github.io/clip_decomposition/) on interpreting attention heads in CLIP with text.
 ### Setup
 We provide an [`environment.yml`](environment.yml) file that can be used to create a Conda environment:
 
