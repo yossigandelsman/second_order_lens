@@ -13,7 +13,7 @@ from utils.factory import create_model_and_transforms
 from prs_second_order_neurons_hook import hook_prs_logger
 from torchvision.datasets import ImageNet
 import torch.multiprocessing
-from utils.subsampled_imagenet import SubsampledValImageNet
+from utils.subsampled_imagenet import SubsampledValImageNet, SubsampledValImageNetR
 
 
 def get_args_parser():
@@ -51,24 +51,25 @@ def get_args_parser():
         "--split", default="val", type=str, help="test, valid, or train."
     )
     parser.add_argument("--num_workers", default=10, type=int)
-    parser.add_argument("--dataset", type=str, default="imagenet", help="")
+    parser.add_argument("--dataset", type=str, default="imagenet_r", help="")
     parser.add_argument("--device", default="cuda:0", help="device to use for testing")
     return parser
 
 
 def main(args):
     torch.multiprocessing.set_sharing_strategy("file_system")
+    training_dataset = args.dataset.replace('_r', '')
     classifier = np.load(
         os.path.join(
             args.output_dir,
-            f"{args.dataset}_classifier_{args.model}_{args.pretrained}.npy",
+            f"{training_dataset}_classifier_{args.model}_{args.pretrained}.npy",
         )
     )
     classifier = torch.from_numpy(classifier).float().to(args.device)
     neurons = np.load(
         os.path.join(
             args.input_dir,
-            f"{args.dataset}_train_mlps_{args.model}_{args.pretrained}_{args.mlp_layer}_merged.npy",
+            f"{training_dataset}_train_mlps_{args.model}_{args.pretrained}_{args.mlp_layer}_merged.npy",
         ),
         mmap_mode="r",
     )  # [images, neurons, d]
@@ -77,14 +78,14 @@ def main(args):
     pcas = np.load(
         os.path.join(
             args.input_dir,
-            f"{args.dataset}_train_mlps_{args.model}_{args.pretrained}_{args.mlp_layer}_{args.top_k_pca}_pca.npy",
+            f"{training_dataset}_train_mlps_{args.model}_{args.pretrained}_{args.mlp_layer}_{args.top_k_pca}_pca.npy",
         ),
         mmap_mode="r",
     )
     norms = np.load(
         os.path.join(
             args.input_dir,
-            f"{args.dataset}_train_mlps_{args.model}_{args.pretrained}_{args.mlp_layer}_{args.top_k_pca}_norm.npy",
+            f"{training_dataset}_train_mlps_{args.model}_{args.pretrained}_{args.mlp_layer}_{args.top_k_pca}_norm.npy",
         ),
         mmap_mode="r",
     )
@@ -105,9 +106,13 @@ def main(args):
     print("Context length:", context_length)
     print("Vocab size:", vocab_size)
     print("Len of res:", len(model.visual.transformer.resblocks))
-    
-    ds = SubsampledValImageNet(root=args.data_path, split=args.split, transform=preprocess)
-    print('Please note that we evaluate on 10% of ImageNet validation set. Therefore, the results are slightly different from the paper.')
+    if args.dataset == 'imagenet':
+        ds = SubsampledValImageNet(root=args.data_path, split=args.split, transform=preprocess)
+    else:
+        assert args.dataset == 'imagenet_r'
+        assert args.split == 'val'
+        ds = SubsampledValImageNetR(root=args.data_path, transform=preprocess)
+    print('Please note that we evaluate on 10% of the validation set. Therefore, the results are slightly different from the paper.')
     dataloader = DataLoader(
         ds, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers
     )
