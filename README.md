@@ -88,12 +88,13 @@ Please see a demo for image concept discovery in `concept_discovery.ipynb`.
 
 ## BibTeX
 ```bibtex
-@misc{gandelsman2024neurons,
+@misc{gandelsman2024interpretingsecondordereffectsneurons,
       title={Interpreting the Second-Order Effects of Neurons in CLIP}, 
       author={Yossi Gandelsman and Alexei A. Efros and Jacob Steinhardt},
       year={2024},
       eprint={2406.04341},
       archivePrefix={arXiv},
-      primaryClass={cs.CV}
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2406.04341}, 
 }
 ```
