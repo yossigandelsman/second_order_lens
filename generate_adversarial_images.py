@@ -7,7 +7,7 @@ from transformers import (
 import argparse
 import numpy as np
 import json
-from diffusers import DiffusionPipeline
+from diffusers import DiffusionPipeline, FluxPipeline
 from diffusers.utils import pt_to_pil
 from PIL import Image
 import os.path
@@ -58,7 +58,8 @@ def get_args_parser():
     parser.add_argument("--num_workers", default=10, type=int)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--device", default="cuda:0", help="device to use for testing")
-    parser.add_argument("--dataset_path", default="./dataset", type=str)
+    parser.add_argument("--dataset_path", default="dataset", type=str)
+    parser.add_argument("--image_model", default="FLUX", type=str, help='DeepFloyd/FLUX')
     parser.add_argument("--dataset", type=str, default="imagenet", help="")
     parser.add_argument("--mlp_layers", default=[8, 9, 10], nargs="+", type=int)
     parser.add_argument("--top_k_pca", default=100, type=int)
@@ -118,22 +119,63 @@ def get_text_model(model_name: str = "meta-llama/Meta-Llama-3-8B-Instruct"):
     return model, tokenizer
 
 
-def get_image_model(device):
-    stage_1 = DiffusionPipeline.from_pretrained(
-        "DeepFloyd/IF-I-XL-v1.0", variant="fp16", torch_dtype=torch.float16
-    ).to(device)
-    stage_1.enable_model_cpu_offload()
+def get_image_model(image_model, device):
+    if image_model == 'FLUX':
+        pipe = FluxPipeline.from_pretrained('black-forest-labs/FLUX.1-schnell', torch_dtype=torch.bfloat16).to(device)
+        pipe.enable_model_cpu_offload()
+        return pipe
+    else:
+        assert image_model == 'DeepFloyd'
+        stage_1 = DiffusionPipeline.from_pretrained(
+            "DeepFloyd/IF-I-XL-v1.0", variant="fp16", torch_dtype=torch.float16
+        ).to(device)
+        stage_1.enable_model_cpu_offload()
 
-    # stage 2
-    stage_2 = DiffusionPipeline.from_pretrained(
-        "DeepFloyd/IF-II-L-v1.0",
-        text_encoder=None,
-        variant="fp16",
-        torch_dtype=torch.float16,
-    ).to(device)
-    stage_2.enable_model_cpu_offload()
-    return stage_1, stage_2
+        # stage 2
+        stage_2 = DiffusionPipeline.from_pretrained(
+            "DeepFloyd/IF-II-L-v1.0",
+            text_encoder=None,
+            variant="fp16",
+            torch_dtype=torch.float16,
+        ).to(device)
+        stage_2.enable_model_cpu_offload()
+        return stage_1, stage_2
 
+
+def get_image(r, image_model, args, generator):
+    if args.image_model != 'FLUX':
+        stage_1, stage_2 = image_model
+        prompt_embeds, negative_embeds = stage_1.encode_prompt(
+                r, device=args.device, num_images_per_prompt=args.batch_size
+        )
+        # stage 1
+        image = stage_1(
+            prompt_embeds=prompt_embeds,
+            negative_prompt_embeds=negative_embeds,
+            generator=generator,
+            output_type="pt",
+        ).images
+        # stage 2
+        image = stage_2(
+            image=image,
+            prompt_embeds=prompt_embeds,
+            negative_prompt_embeds=negative_embeds,
+            generator=generator,
+            output_type="pt",
+            guidance_scale=4.0,
+        ).images
+    else:
+        image = image_model(
+            prompt=[r for _ in range(args.batch_size)],
+            num_inference_steps=4,
+            height=256,
+            width=256,
+            guidance_scale=4,
+            generator=generator,
+            output_type="pt",
+            max_sequence_length=256,
+        ).images
+    return image
 
 def send_request(positive, yes, no, model, tokenizer):
     request = (
@@ -301,7 +343,7 @@ def main(args):
     del text_tokenizer
     torch.cuda.empty_cache()
     # Do the diffusion part:
-    stage_1, stage_2 = get_image_model(args.device)
+    image_model = get_image_model(args.image_model, args.device)
     outputs = []
     avg_results = 0
     good_results = []
@@ -322,25 +364,7 @@ def main(args):
         if not r:
             continue
         # text embeds
-        prompt_embeds, negative_embeds = stage_1.encode_prompt(
-            r, device=args.device, num_images_per_prompt=args.batch_size
-        )
-        # stage 1
-        image = stage_1(
-            prompt_embeds=prompt_embeds,
-            negative_prompt_embeds=negative_embeds,
-            generator=generator,
-            output_type="pt",
-        ).images
-        # stage 2
-        image = stage_2(
-            image=image,
-            prompt_embeds=prompt_embeds,
-            negative_prompt_embeds=negative_embeds,
-            generator=generator,
-            output_type="pt",
-            guidance_scale=4.0,
-        ).images
+        image = get_image(r, image_model, args, generator)
         for x in range(args.batch_size):
             pt_to_pil(image)[x].save(
                 os.path.join(args.dataset_path, f"{counter:03}.png")
