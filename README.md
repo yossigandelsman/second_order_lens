@@ -79,7 +79,7 @@ wget http://calvin-vision.net/bigstuff/proj-imagenet/data/gtsegs_ijcv.mat
 To get the evaluation results, please run:
 
 ```bash
-python compute_segmentation.py --device cuda:0 --model ViT-B-32 --pretrained openai  --mlp_layers 9 --data_path imagenet_seg/gtsegs_ijcv.mat --save_img --output_dir $outputdir
+CUDA_VISIBLE_DEVICES=0 python generate_adversarial_images.py --device cuda:0 --class_0 "stop sign" --class_1 "yield" --model ViT-B-32 --pretrained openai  --dataset_path $outputdir --text_descriptions 30k --mlp_layers 9 --neurons_num 100 --overall_words 50 --results_per_generation 4
 ```
 Note that we used other hyperparameters in the paper, including `--mlp_layers 8 9 10`.
 
