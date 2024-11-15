@@ -59,7 +59,9 @@ def get_args_parser():
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--device", default="cuda:0", help="device to use for testing")
     parser.add_argument("--dataset_path", default="dataset", type=str)
-    parser.add_argument("--image_model", default="FLUX", type=str, help='DeepFloyd/FLUX')
+    parser.add_argument(
+        "--image_model", default="FLUX", type=str, help="DeepFloyd/FLUX"
+    )
     parser.add_argument("--dataset", type=str, default="imagenet", help="")
     parser.add_argument("--mlp_layers", default=[8, 9, 10], nargs="+", type=int)
     parser.add_argument("--top_k_pca", default=100, type=int)
@@ -102,7 +104,7 @@ def get_args_parser():
         "--overall_words", default=20, type=int, help="how many words to take overall"
     )
     parser.add_argument(
-        "--batch_size", default=4, type=int, help='Image generations per query'
+        "--batch_size", default=4, type=int, help="Image generations per query"
     )
     return parser
 
@@ -120,12 +122,14 @@ def get_text_model(model_name: str = "meta-llama/Meta-Llama-3-8B-Instruct"):
 
 
 def get_image_model(image_model, device):
-    if image_model == 'FLUX':
-        pipe = FluxPipeline.from_pretrained('black-forest-labs/FLUX.1-schnell', torch_dtype=torch.bfloat16).to(device)
+    if image_model == "FLUX":
+        pipe = FluxPipeline.from_pretrained(
+            "black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16
+        ).to(device)
         pipe.enable_model_cpu_offload()
         return pipe
     else:
-        assert image_model == 'DeepFloyd'
+        assert image_model == "DeepFloyd"
         stage_1 = DiffusionPipeline.from_pretrained(
             "DeepFloyd/IF-I-XL-v1.0", variant="fp16", torch_dtype=torch.float16
         ).to(device)
@@ -143,10 +147,10 @@ def get_image_model(image_model, device):
 
 
 def get_image(r, image_model, args, generator):
-    if args.image_model != 'FLUX':
+    if args.image_model != "FLUX":
         stage_1, stage_2 = image_model
         prompt_embeds, negative_embeds = stage_1.encode_prompt(
-                r, device=args.device, num_images_per_prompt=args.batch_size
+            r, device=args.device, num_images_per_prompt=args.batch_size
         )
         # stage 1
         image = stage_1(
@@ -176,6 +180,7 @@ def get_image(r, image_model, args, generator):
             max_sequence_length=256,
         ).images
     return image
+
 
 def send_request(positive, yes, no, model, tokenizer):
     request = (

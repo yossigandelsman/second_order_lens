@@ -133,7 +133,7 @@ class Decompose(object):
         elif self.solver == "omp":
             weights = []
             for i in trange(0, embedding.shape[0], batch_size):
-                weights.append(self.coder.transform(embedding[i:i+batch_size]))
+                weights.append(self.coder.transform(embedding[i : i + batch_size]))
             weights = np.concatenate(weights, axis=0)
         else:
             raise ValueError("Unknown decomposer")
